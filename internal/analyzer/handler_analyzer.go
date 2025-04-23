@@ -6,16 +6,16 @@ import (
 	"go/token"
 	"strings"
 
-	"github.com/user/golang-echo-analyzer/src/scanner"
+	"github.com/user/golang-echo-analyzer/internal/scanner"
 )
 
 // HandlerInfo represents information about a handler function
 type HandlerInfo struct {
-	Name           string
-	Route          scanner.RouteInfo
-	RequestInputs  []RequestInput
+	Name            string
+	Route           scanner.RouteInfo
+	RequestInputs   []RequestInput
 	ResponseOutputs []ResponseOutput
-	Position       token.Position
+	Position        token.Position
 }
 
 // RequestInput represents an input parameter from a request
@@ -39,17 +39,17 @@ type ResponseOutput struct {
 
 // HandlerAnalyzer analyzes Echo handler functions to determine inputs and outputs
 type HandlerAnalyzer struct {
-	FileSet      *token.FileSet
-	Handlers     map[string]*HandlerInfo
-	Verbose      bool
+	FileSet  *token.FileSet
+	Handlers map[string]*HandlerInfo
+	Verbose  bool
 }
 
 // NewHandlerAnalyzer creates a new HandlerAnalyzer
 func NewHandlerAnalyzer(fset *token.FileSet, verbose bool) *HandlerAnalyzer {
 	return &HandlerAnalyzer{
-		FileSet:      fset,
-		Handlers:     make(map[string]*HandlerInfo),
-		Verbose:      verbose,
+		FileSet:  fset,
+		Handlers: make(map[string]*HandlerInfo),
+		Verbose:  verbose,
 	}
 }
 
@@ -79,11 +79,11 @@ func (a *HandlerAnalyzer) Analyze(files []*ast.File, routes []scanner.RouteInfo)
 
 		// Create handler info
 		handlerInfo := &HandlerInfo{
-			Name:           route.HandlerName,
-			Route:          route,
-			RequestInputs:  []RequestInput{},
+			Name:            route.HandlerName,
+			Route:           route,
+			RequestInputs:   []RequestInput{},
 			ResponseOutputs: []ResponseOutput{},
-			Position:       a.FileSet.Position(handlerFunc.Pos()),
+			Position:        a.FileSet.Position(handlerFunc.Pos()),
 		}
 
 		// Analyze the handler function
@@ -167,11 +167,11 @@ func (a *HandlerAnalyzer) analyzeHandlerFromRoute(route scanner.RouteInfo) {
 	// Handle anonymous functions
 	if funcLit, ok := route.HandlerNode.(*ast.FuncLit); ok {
 		handlerInfo := &HandlerInfo{
-			Name:           "anonymous",
-			Route:          route,
-			RequestInputs:  []RequestInput{},
+			Name:            "anonymous",
+			Route:           route,
+			RequestInputs:   []RequestInput{},
 			ResponseOutputs: []ResponseOutput{},
-			Position:       a.FileSet.Position(funcLit.Pos()),
+			Position:        a.FileSet.Position(funcLit.Pos()),
 		}
 
 		// Analyze the function body
@@ -214,7 +214,7 @@ func (a *HandlerAnalyzer) analyzeHandlerBody(body *ast.BlockStmt, handlerInfo *H
 				if ident, ok := sel.X.(*ast.Ident); ok {
 					// Check for request input methods
 					a.checkRequestInputMethod(ident.Name, sel.Sel.Name, expr, handlerInfo)
-					
+
 					// Check for response output methods
 					a.checkResponseOutputMethod(ident.Name, sel.Sel.Name, expr, handlerInfo)
 				}
@@ -271,13 +271,13 @@ func (a *HandlerAnalyzer) checkRequestInputMethod(objName, methodName string, ca
 
 	if inputType != "" && paramName != "" {
 		input := RequestInput{
-			Type:        inputType,
-			Name:        paramName,
-			DataType:    "string", // Default type
-			Required:    required,
-			Position:    a.FileSet.Position(call.Pos()),
+			Type:     inputType,
+			Name:     paramName,
+			DataType: "string", // Default type
+			Required: required,
+			Position: a.FileSet.Position(call.Pos()),
 		}
-		
+
 		// Check if this input already exists
 		exists := false
 		for _, existing := range handlerInfo.RequestInputs {
@@ -286,7 +286,7 @@ func (a *HandlerAnalyzer) checkRequestInputMethod(objName, methodName string, ca
 				break
 			}
 		}
-		
+
 		if !exists {
 			handlerInfo.RequestInputs = append(handlerInfo.RequestInputs, input)
 			if a.Verbose {
@@ -347,10 +347,10 @@ func (a *HandlerAnalyzer) checkResponseOutputMethod(objName, methodName string, 
 		}
 
 		output := ResponseOutput{
-			Type:        outputType,
-			StatusCode:  statusCode,
-			DataType:    "unknown", // Default type
-			Position:    a.FileSet.Position(call.Pos()),
+			Type:       outputType,
+			StatusCode: statusCode,
+			DataType:   "unknown", // Default type
+			Position:   a.FileSet.Position(call.Pos()),
 		}
 
 		// Try to determine data type for JSON/XML responses

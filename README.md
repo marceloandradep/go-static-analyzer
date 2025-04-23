@@ -74,4 +74,3 @@ To contribute to this project:
 ## License
 
 MIT
-# go-static-analyzer

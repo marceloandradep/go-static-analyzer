@@ -9,18 +9,18 @@ import (
 
 // EventInfo represents information about an AWS event
 type EventInfo struct {
-	Service     string         // AWS service (SNS, SQS)
-	Operation   string         // Operation (Publish, SendMessage)
-	TopicOrQueue string        // Topic ARN or Queue URL/name
-	MessageFormat MessageFormat // Message format details
-	Position    token.Position // Position in source code
+	Service       string         // AWS service (SNS, SQS)
+	Operation     string         // Operation (Publish, SendMessage)
+	TopicOrQueue  string         // Topic ARN or Queue URL/name
+	MessageFormat MessageFormat  // Message format details
+	Position      token.Position // Position in source code
 }
 
 // MessageFormat represents the format of a message
 type MessageFormat struct {
-	Fields      []MessageField // Fields in the message
-	RawMessage  string         // Raw message if available
-	IsStructured bool          // Whether the message is structured
+	Fields       []MessageField // Fields in the message
+	RawMessage   string         // Raw message if available
+	IsStructured bool           // Whether the message is structured
 }
 
 // MessageField represents a field in a message
@@ -32,18 +32,18 @@ type MessageField struct {
 
 // AWSAnalyzer analyzes AWS SDK usage for SNS/SQS
 type AWSAnalyzer struct {
-	FileSet      *token.FileSet
-	Events       []EventInfo
-	Verbose      bool
+	FileSet       *token.FileSet
+	Events        []EventInfo
+	Verbose       bool
 	awsClientVars map[string]string // Maps variable names to AWS service types
 }
 
 // NewAWSAnalyzer creates a new AWSAnalyzer
 func NewAWSAnalyzer(fset *token.FileSet, verbose bool) *AWSAnalyzer {
 	return &AWSAnalyzer{
-		FileSet:      fset,
-		Events:       []EventInfo{},
-		Verbose:      verbose,
+		FileSet:       fset,
+		Events:        []EventInfo{},
+		Verbose:       verbose,
 		awsClientVars: make(map[string]string),
 	}
 }
@@ -57,7 +57,7 @@ func (a *AWSAnalyzer) Analyze(files []*ast.File) error {
 	for _, file := range files {
 		// First pass: identify AWS client variables
 		a.identifyAWSClients(file)
-		
+
 		// Second pass: find AWS operations
 		a.findAWSOperations(file)
 	}
@@ -107,7 +107,7 @@ func (a *AWSAnalyzer) getAWSService(pkgName, funcName string) string {
 	if pkgName == "sqs" && funcName == "New" {
 		return "SQS"
 	}
-	
+
 	// Check for AWS SDK v2 patterns
 	if pkgName == "sns" && funcName == "NewClient" {
 		return "SNS"
@@ -115,7 +115,7 @@ func (a *AWSAnalyzer) getAWSService(pkgName, funcName string) string {
 	if pkgName == "sqs" && funcName == "NewClient" {
 		return "SQS"
 	}
-	
+
 	return ""
 }
 
@@ -132,22 +132,22 @@ func (a *AWSAnalyzer) findAWSOperations(file *ast.File) {
 						if operation := a.getAWSOperation(service, sel.Sel.Name); operation != "" {
 							// This is an AWS operation
 							event := EventInfo{
-								Service:     service,
-								Operation:   operation,
-								Position:    a.FileSet.Position(expr.Pos()),
+								Service:   service,
+								Operation: operation,
+								Position:  a.FileSet.Position(expr.Pos()),
 							}
-							
+
 							// Extract topic/queue and message format
 							if service == "SNS" {
 								a.extractSNSDetails(expr, &event)
 							} else if service == "SQS" {
 								a.extractSQSDetails(expr, &event)
 							}
-							
+
 							a.Events = append(a.Events, event)
-							
+
 							if a.Verbose {
-								fmt.Printf("  Found AWS operation: %s %s -> %s\n", 
+								fmt.Printf("  Found AWS operation: %s %s -> %s\n",
 									event.Service, event.Operation, event.TopicOrQueue)
 							}
 						}
@@ -180,14 +180,14 @@ func (a *AWSAnalyzer) getAWSOperation(service, methodName string) string {
 // extractSNSDetails extracts details from an SNS Publish call
 func (a *AWSAnalyzer) extractSNSDetails(call *ast.CallExpr, event *EventInfo) {
 	// Check for different patterns of SNS Publish calls
-	
+
 	// Pattern 1: Direct args - client.Publish(input)
 	if len(call.Args) == 1 {
 		if arg, ok := call.Args[0].(*ast.CompositeLit); ok {
 			a.extractSNSPublishInput(arg, event)
 		}
 	}
-	
+
 	// Pattern 2: With context - client.PublishWithContext(ctx, input)
 	if len(call.Args) == 2 {
 		if arg, ok := call.Args[1].(*ast.CompositeLit); ok {
@@ -217,14 +217,14 @@ func (a *AWSAnalyzer) extractSNSPublishInput(lit *ast.CompositeLit, event *Event
 // extractSQSDetails extracts details from an SQS SendMessage call
 func (a *AWSAnalyzer) extractSQSDetails(call *ast.CallExpr, event *EventInfo) {
 	// Check for different patterns of SQS SendMessage calls
-	
+
 	// Pattern 1: Direct args - client.SendMessage(input)
 	if len(call.Args) == 1 {
 		if arg, ok := call.Args[0].(*ast.CompositeLit); ok {
 			a.extractSQSSendMessageInput(arg, event)
 		}
 	}
-	
+
 	// Pattern 2: With context - client.SendMessageWithContext(ctx, input)
 	if len(call.Args) == 2 {
 		if arg, ok := call.Args[1].(*ast.CompositeLit); ok {
@@ -259,7 +259,7 @@ func (a *AWSAnalyzer) extractMessageAttributes(expr ast.Expr, format *MessageFor
 			if kv, ok := elt.(*ast.KeyValueExpr); ok {
 				fieldName := a.extractStringValue(kv.Key)
 				fieldType := "string" // Default type
-				
+
 				// Try to determine the actual type
 				if valueLit, ok := kv.Value.(*ast.CompositeLit); ok {
 					for _, valueElt := range valueLit.Elts {
@@ -272,12 +272,12 @@ func (a *AWSAnalyzer) extractMessageAttributes(expr ast.Expr, format *MessageFor
 						}
 					}
 				}
-				
+
 				format.Fields = append(format.Fields, MessageField{
 					Name: fieldName,
 					Type: fieldType,
 				})
-				
+
 				format.IsStructured = true
 			}
 		}
